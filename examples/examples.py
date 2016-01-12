@@ -58,6 +58,8 @@ if __name__ == '__main__':
     rho_series.plot()
     plt.show()
 
-    vol, theta = model.estimate_univ(ret)
-    print(vol)
-    print(theta)
+#    vol, theta = model.estimate_univ(ret)
+    std_data = model.standardize_returns(ret)
+
+    std_data.plot(subplots=True, sharey='row')
+    plt.show()

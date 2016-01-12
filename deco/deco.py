@@ -99,3 +99,10 @@ class DECO(object):
         theta.columns = data.columns
         vol = np.vstack(vol)
         return vol, theta
+
+    def standardize_returns(self, data=None):
+        """Standardize returns using estimated conditional volatility.
+
+        """
+        vol = self.estimate_univ(data=data)[0]
+        return data / vol.T
