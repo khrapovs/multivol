@@ -19,3 +19,8 @@ Installation
 ::
 
 	pip install git+git://github.com/khrapovs/multivol
+
+Requirements
+------------
+
+- `ARCH <https://github.com/bashtage/arch>`_
