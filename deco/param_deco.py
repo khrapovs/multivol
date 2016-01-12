@@ -40,3 +40,33 @@ class ParamDECO(object):
         self.bcorr = bcorr
         self.acorr = acorr
         self.rho = rho
+
+    def as_pandas(self):
+        """Represent parameters as pandas objects.
+
+        """
+        univ = pd.DataFrame({'Persistence': self.persistence,
+                             'Feedback': self.beta,
+                             'Unconditional mean': self.volmean}).T
+        corr = pd.Series({'News impact': self.acorr,
+                          'Feedback': self.bcorr,
+                          'Correlation target': self.rho})
+        return univ, corr
+
+    def __str__(self):
+        """String representation.
+
+        """
+        univ, corr = self.as_pandas()
+        show = '\n\nNumber of dimensions = %d' % self.ndim
+        show += '\n\nParameters of univariate volatilities:\n'
+        show += univ.to_string(float_format=lambda x: '%.2f' % x)
+        show += '\n\nParameters of correlation model:\n'
+        show += corr.to_string(float_format=lambda x: '%.2f' % x)
+        return show + '\n'
+
+    def __repr__(self):
+        """String representation.
+
+        """
+        return self.__str__()

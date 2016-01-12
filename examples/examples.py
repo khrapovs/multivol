@@ -46,6 +46,9 @@ if __name__ == '__main__':
 
     param = ParamDECO(ndim=ndim, persistence=persistence, beta=beta,
                       volmean=volmean, acorr=acorr, bcorr=bcorr, rho=rho)
+
+    print(param)
+
     model = DECO(param)
     ret, rho_series = model.simulate(nobs=nobs)
 
