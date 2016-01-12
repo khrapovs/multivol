@@ -11,6 +11,10 @@ import numpy as np
 import pandas as pd
 import scipy.linalg as scl
 
+from deco import ParamDECO
+
+__all__ = ['DECO']
+
 
 class DECO(object):
 
@@ -27,7 +31,7 @@ class DECO(object):
     def __init__(self):
         pass
 
-    def simulate(self, param=None, nobs=1000, ):
+    def simulate(self, param=ParamDECO(), nobs=2000):
         """Simulate returns and (co)variances.
 
         Parameters
@@ -37,17 +41,15 @@ class DECO(object):
         -------
 
         """
-        nobs = 2000
-        ndim = 3
-        persistence = .99
-        beta = .85
-        alpha = persistence - beta
-        volmean = .2
-        omega = volmean * (1 - persistence)
+        ndim = param.ndim
+        persistence = param.persistence
+        beta = param.beta
+        alpha = param.alpha
+        volmean = param.volmean
 
-        bcorr = .8
-        acorr = .15
-        prho = .9
+        bcorr = param.bcorr
+        acorr = param.acorr
+        prho = param.prho
 
         hvar = np.zeros((nobs, ndim, ndim))
         qmat = np.zeros((nobs, ndim, ndim))
@@ -61,7 +63,8 @@ class DECO(object):
         qeta = np.zeros(ndim)
 
         for t in range(1, nobs):
-            dvec = omega + alpha * ret[t-1]**2 + beta * dvec
+            dvec = volmean * (1 - persistence) \
+                + alpha * ret[t-1]**2 + beta * dvec
             qmat[t] = qmat[0] * (1 - acorr - bcorr) \
                 + acorr * qeta[:, np.newaxis] * qeta \
                 + bcorr * qmat[t-1]

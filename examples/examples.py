@@ -52,5 +52,5 @@ if __name__ == '__main__':
     ret.plot(subplots=True, sharey='row')
     plt.show()
 
-    plt.plot(rho)
+    rho.plot()
     plt.show()
