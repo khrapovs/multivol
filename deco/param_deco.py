@@ -26,16 +26,17 @@ class ParamDECO(object):
 
     """
 
-    def __init__(self):
+    def __init__(self, ndim=3, persistence=.99, beta=.85, volmean=.2,
+                 acorr=.15, bcorr=.8, rho=.9):
         """Initialize parameter class.
 
         """
-        self.ndim = 3
-        self.persistence = .99
-        self.beta = .85
+        self.ndim = ndim
+        self.persistence = persistence
+        self.beta = beta
         self.alpha = self.persistence - self.beta
-        self.volmean = .2
+        self.volmean = volmean
 
-        self.bcorr = .8
-        self.acorr = .15
-        self.prho = .9
+        self.bcorr = bcorr
+        self.acorr = acorr
+        self.rho = rho

@@ -9,7 +9,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
-from deco import DECO
+from deco import DECO, ParamDECO
 
 
 if __name__ == '__main__':
@@ -38,19 +38,19 @@ if __name__ == '__main__':
     ndim = 3
     persistence = .99
     beta = .85
-    alpha = persistence - beta
     volmean = .2
-    omega = volmean * (1 - persistence)
 
     bcorr = .8
     acorr = .15
-    prho = .9
+    rho = .9
 
-    model = DECO()
-    ret, rho = model.simulate()
+    param = ParamDECO(ndim=ndim, persistence=persistence, beta=beta,
+                      volmean=volmean, acorr=acorr, bcorr=bcorr, rho=rho)
+    model = DECO(param)
+    ret, rho_series = model.simulate(nobs=nobs)
 
     ret.plot(subplots=True, sharey='row')
     plt.show()
 
-    rho.plot()
+    rho_series.plot()
     plt.show()

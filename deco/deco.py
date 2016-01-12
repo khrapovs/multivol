@@ -28,10 +28,13 @@ class DECO(object):
 
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, param=ParamDECO()):
+        """Initialize the model.
 
-    def simulate(self, param=ParamDECO(), nobs=2000):
+        """
+        self.param = param
+
+    def simulate(self, nobs=2000):
         """Simulate returns and (co)variances.
 
         Parameters
@@ -41,21 +44,21 @@ class DECO(object):
         -------
 
         """
-        ndim = param.ndim
-        persistence = param.persistence
-        beta = param.beta
-        alpha = param.alpha
-        volmean = param.volmean
+        ndim = self.param.ndim
+        persistence = self.param.persistence
+        beta = self.param.beta
+        alpha = self.param.alpha
+        volmean = self.param.volmean
 
-        bcorr = param.bcorr
-        acorr = param.acorr
-        prho = param.prho
+        bcorr = self.param.bcorr
+        acorr = self.param.acorr
+        rho = self.param.rho
 
         hvar = np.zeros((nobs, ndim, ndim))
         qmat = np.zeros((nobs, ndim, ndim))
-        rho = np.ones(nobs) * prho
+        rho_series = np.ones(nobs) * rho
         dvec = np.ones(ndim) * volmean
-        qmat[0] = (1 - prho) * np.eye(ndim) + prho * np.ones((ndim, ndim))
+        qmat[0] = (1 - rho) * np.eye(ndim) + rho * np.ones((ndim, ndim))
         ret = np.zeros((nobs, ndim))
         mean, cov = np.zeros(ndim), np.eye(ndim)
         error = np.random.multivariate_normal(mean, cov, nobs)
@@ -70,10 +73,11 @@ class DECO(object):
                 + bcorr * qmat[t-1]
             qdiag = np.diag(qmat[t]) ** .5
             corr_dcc = (1 / qdiag[:, np.newaxis] / qdiag) * qmat[t]
-            rho[t] = (corr_dcc.sum() - ndim) / (ndim - 1) / ndim
-            corr = (1 - rho[t]) * np.eye(ndim) + rho[t] * np.ones((ndim, ndim))
+            rho_series[t] = (corr_dcc.sum() - ndim) / (ndim - 1) / ndim
+            corr = (1 - rho_series[t]) * np.eye(ndim) \
+                + rho_series[t] * np.ones((ndim, ndim))
             hvar[t] = (dvec[:, np.newaxis] * dvec)**.5 * corr
             ret[t] = (error[t] * scl.cholesky(hvar[t], 1)).sum(1)
             qeta = qdiag * ret[t] / dvec**.5
 
-        return pd.DataFrame(ret), pd.Series(rho)
+        return pd.DataFrame(ret), pd.Series(rho_series)
