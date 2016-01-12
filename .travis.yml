@@ -23,8 +23,9 @@ before_install:
 # Install packages
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy matplotlib nose seaborn
-  - pip install git+https://github.com/bashtage/arch.git
-  - python setup.py build
+  - conda install -c https://conda.binstar.org/bashtage arch
+  # - pip install git+https://github.com/bashtage/arch.git
+  # - python setup.py build
 
 # Run test
 script:
