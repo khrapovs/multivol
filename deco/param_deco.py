@@ -32,10 +32,10 @@ class ParamDECO(object):
 
         """
         self.ndim = ndim
-        self.persistence = persistence
-        self.beta = beta
+        self.persistence = persistence * np.ones(ndim)
+        self.beta = beta * np.ones(ndim)
         self.alpha = self.persistence - self.beta
-        self.volmean = volmean
+        self.volmean = volmean * np.ones(ndim)
 
         self.bcorr = bcorr
         self.acorr = acorr
