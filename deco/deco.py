@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 import scipy.linalg as scl
 
+from arch import arch_model
 from deco import ParamDECO
 
 __all__ = ['DECO']
@@ -81,3 +82,20 @@ class DECO(object):
             qeta = qdiag * ret[t] / dvec**.5
 
         return pd.DataFrame(ret), pd.Series(rho_series)
+
+    def estimate_univ(self, data=None):
+        """Estimate univariate volatility models.
+
+        """
+        vol = []
+        theta = []
+        for ret in data.T.values:
+            model = arch_model(ret, p=1, q=1, mean='Zero',
+                               vol='GARCH', dist='Normal')
+            res = model.fit(disp='off')
+            theta.append(res.params)
+            vol.append(res.conditional_volatility)
+        theta = pd.concat(theta, axis=1)
+        theta.columns = data.columns
+        vol = np.vstack(vol)
+        return vol, theta

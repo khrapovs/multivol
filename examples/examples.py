@@ -57,3 +57,7 @@ if __name__ == '__main__':
 
     rho_series.plot()
     plt.show()
+
+    vol, theta = model.estimate_univ(ret)
+    print(vol)
+    print(theta)
