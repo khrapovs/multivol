@@ -38,12 +38,13 @@ if __name__ == '__main__':
 
     ret.plot(subplots=True, sharey='row')
     plt.show()
-
     rho_series.plot()
     plt.show()
 
 #    vol, theta = model.estimate_univ(ret)
-    std_data = model.standardize_returns(ret)
+#    vol.plot(subplots=True, sharey='row')
+#    plt.show()
 
+    std_data = model.standardize_returns(ret)
     std_data.plot(subplots=True, sharey='row')
     plt.show()

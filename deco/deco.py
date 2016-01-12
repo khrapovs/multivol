@@ -97,7 +97,7 @@ class DECO(object):
             vol.append(res.conditional_volatility)
         theta = pd.concat(theta, axis=1)
         theta.columns = data.columns
-        vol = np.vstack(vol)
+        vol = pd.DataFrame(np.vstack(vol).T, columns=data.columns)
         return vol, theta
 
     def standardize_returns(self, data=None):
@@ -105,4 +105,4 @@ class DECO(object):
 
         """
         vol = self.estimate_univ(data=data)[0]
-        return data / vol.T
+        return data / vol
