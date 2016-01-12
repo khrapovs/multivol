@@ -16,6 +16,7 @@ setup(name='multivol',
       url='https://github.com/khrapovs/multivol',
       py_modules=['multivol'],
       packages=find_packages(),
+      package_dir={'deco': './deco'},
       keywords=['volatility', 'multivariate', 'covariance', 'dynamics',
                 'estimation', 'simulation'],
       classifiers=[
