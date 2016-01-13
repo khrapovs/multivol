@@ -78,7 +78,7 @@ class DECO(object):
             corr = (1 - rho_series[t]) * np.eye(ndim) \
                 + rho_series[t] * np.ones((ndim, ndim))
             hvar[t] = (dvec[:, np.newaxis] * dvec)**.5 * corr
-            ret[t] = (error[t] * scl.cholesky(hvar[t], 1)).sum(1)
+            ret[t] = error[t].dot(scl.cholesky(hvar[t], 0))
             qeta = qdiag * ret[t] / dvec**.5
 
         return pd.DataFrame(ret[1:]), pd.Series(rho_series[1:])
@@ -186,12 +186,12 @@ class DECO(object):
 
         """
         nobs, ndim = self.data.shape
-        lower = True
         corr = self.corr_deco()
         errors = np.zeros((nobs, ndim))
         data = self.std_data.values
+        corr = np.corrcoef(data.T)
         for t in range(nobs):
-            half, lower = scl.cho_factor(corr[t], lower=lower)
-            errors[t] = scl.cho_solve((half, lower), data[t])
+            factor, lower = scl.cho_factor(corr, lower=True)
+            errors[t] = scl.solve_triangular(factor, data[t], lower=lower)
         self.errors = pd.DataFrame(errors, index=self.data.index,
                                    columns=self.data.columns)

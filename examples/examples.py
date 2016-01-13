@@ -18,7 +18,7 @@ if __name__ == '__main__':
     np.set_printoptions(precision=4, suppress=True)
     sns.set()
 
-    nobs = 2000
+    nobs = 500
     ndim = 3
     persistence = .99
     beta = .85
