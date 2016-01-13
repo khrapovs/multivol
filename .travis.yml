@@ -29,6 +29,7 @@ install:
 
 # Run test
 script:
+  - python setup.py build
   - nosetests
 
 # Calculate coverage
