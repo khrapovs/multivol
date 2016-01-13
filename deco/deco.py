@@ -119,12 +119,10 @@ class DECO(object):
 
         acorr = param.acorr
         bcorr = param.bcorr
-        rho = param.rho
 
         for t in range(nobs):
             if t == 0:
-                qmat[0] = (1 - rho) * np.eye(ndim) \
-                    + rho * np.ones((ndim, ndim))
+                qmat[0] = data.T.dot(data) / nobs
             else:
                 qmat[t] = qmat[0] * (1 - acorr - bcorr) \
                     + acorr * data[t-1][:, np.newaxis] * data[t-1] \
@@ -135,3 +133,16 @@ class DECO(object):
             corr_deco[t] = (1 - rho_series[t]) * np.eye(ndim) \
                 + rho_series[t] * np.ones((ndim, ndim))
         return rho_series, corr_deco
+
+    def likelihood(self, data=None, rho_series=None):
+        """Log-likelihood function.
+
+        """
+        # TODO: Should be done outside!
+        data = data.values
+        nobs, ndim = data.shape
+        out = np.log((1 - rho_series) ** (ndim - 1) \
+            * (1 + (ndim - 1) * rho_series)) \
+            + ((data**2).sum(1) - rho_series * data.sum(1)**2 \
+            / (1 + (ndim - 1) * rho_series)) / (1 - rho_series)
+        return -np.mean(out)

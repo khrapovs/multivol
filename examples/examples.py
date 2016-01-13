@@ -18,7 +18,7 @@ if __name__ == '__main__':
     np.set_printoptions(precision=4, suppress=True)
     sns.set()
 
-    nobs = 2000
+    nobs = 1000
     ndim = 3
     persistence = .99
     beta = .85
@@ -49,8 +49,10 @@ if __name__ == '__main__':
     std_data.plot(subplots=True, sharey='row')
     plt.show()
 
-    rho_series_filt, corr = model.filter_deco(data=std_data, param=param)
+    rho_series_fit, corr = model.filter_deco(data=std_data, param=param)
 
     rho_series.plot()
-    plt.plot(rho_series_filt)
+    plt.plot(rho_series_fit)
     plt.show()
+
+    print(model.likelihood(data=ret, rho_series=rho_series_fit))
