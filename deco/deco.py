@@ -146,7 +146,7 @@ class DECO(object):
 
         """
         # TODO: Should be done outside!
-        data = self.data
+        data = self.std_data
         nobs, ndim = data.shape
         out = np.log((1 - rho_series) ** (ndim - 1) \
             * (1 + (ndim - 1) * rho_series)) \

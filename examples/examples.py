@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     acorr = .05
     bcorr = .9
-    rho = .8
+    rho = .4
 
     param = ParamDECO(ndim=ndim, persistence=persistence, beta=beta,
                       volmean=volmean, acorr=acorr, bcorr=bcorr, rho=rho)
