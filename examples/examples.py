@@ -18,7 +18,7 @@ if __name__ == '__main__':
     np.set_printoptions(precision=4, suppress=True)
     sns.set()
 
-    nobs = 1000
+    nobs = 2000
     ndim = 3
     persistence = .99
     beta = .85
@@ -26,7 +26,7 @@ if __name__ == '__main__':
 
     acorr = .05
     bcorr = .9
-    rho = .4
+    rho = .5
 
     param = ParamDECO(ndim=ndim, persistence=persistence, beta=beta,
                       volmean=volmean, acorr=acorr, bcorr=bcorr, rho=rho)
@@ -57,3 +57,9 @@ if __name__ == '__main__':
     rho_series.plot(label='Simulated')
     plt.legend()
     plt.show()
+
+    model.estimate_residuals()
+    model.errors.plot(subplots=True, sharey='row')
+    plt.show()
+
+    print(np.corrcoef(model.errors.T))

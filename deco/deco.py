@@ -104,7 +104,8 @@ class DECO(object):
         """Standardize returns using estimated conditional volatility.
 
         """
-        return data / self.estimate_univ(data=data)[0]
+        self.univ_vol = self.estimate_univ(data=data)[0]
+        return data / self.univ_vol
 
     def filter_deco(self, data=None, param=None):
         """Filter Q matrix series.
@@ -130,26 +131,26 @@ class DECO(object):
             rho_series[t] = (corr_dcc.sum() - ndim) / (ndim - 1) / ndim
         return rho_series
 
-    def corr_deco(self, data=None, rho_series=None):
+    def corr_deco(self):
         """Construct correlation matrix series.
 
         """
-        nobs, ndim = data.shape
-        corr_deco = np.zeros((nobs, ndim, ndim))
+        nobs, ndim = self.data.shape
+        corr = np.zeros((nobs, ndim, ndim))
         for t in range(nobs):
-            corr_deco[t] = (1 - rho_series[t]) * np.eye(ndim) \
-                    + rho_series[t] * np.ones((ndim, ndim))
-        return corr_deco
+            corr[t] = (1 - self.rho_series[t]) * np.eye(ndim) \
+                    + self.rho_series[t] * np.ones((ndim, ndim))
+        return corr
 
     def likelihood_value(self, rho_series=None):
         """Log-likelihood function (data).
 
         """
-        # TODO: Should be done outside!
         data = self.std_data
         nobs, ndim = data.shape
-        out = np.log((1 - rho_series) ** (ndim - 1) \
-            * (1 + (ndim - 1) * rho_series)) \
+        corr_det = (1 - rho_series) ** (ndim - 1) \
+            * (1 + (ndim - 1) * rho_series)
+        out = np.log(corr_det) \
             + ((data**2).sum(1) - rho_series * data.sum(1)**2 \
             / (1 + (ndim - 1) * rho_series)) / (1 - rho_series)
         return np.mean(out)
@@ -179,3 +180,18 @@ class DECO(object):
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
         return opt_out
+
+    def estimate_residuals(self):
+        """Estimate multivariate residuals.
+
+        """
+        nobs, ndim = self.data.shape
+        lower = True
+        corr = self.corr_deco()
+        errors = np.zeros((nobs, ndim))
+        data = self.std_data.values
+        for t in range(nobs):
+            half, lower = scl.cho_factor(corr[t], lower=lower)
+            errors[t] = scl.cho_solve((half, lower), data[t])
+        self.errors = pd.DataFrame(errors, index=self.data.index,
+                                   columns=self.data.columns)
