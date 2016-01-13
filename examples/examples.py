@@ -24,9 +24,9 @@ if __name__ == '__main__':
     beta = .85
     volmean = .2
 
-    bcorr = .8
-    acorr = .15
-    rho = .9
+    acorr = .05
+    bcorr = .9
+    rho = .8
 
     param = ParamDECO(ndim=ndim, persistence=persistence, beta=beta,
                       volmean=volmean, acorr=acorr, bcorr=bcorr, rho=rho)
@@ -49,10 +49,11 @@ if __name__ == '__main__':
     std_data.plot(subplots=True, sharey='row')
     plt.show()
 
-    rho_series_fit, corr = model.filter_deco(data=std_data, param=param)
+    result = model.fit(data=ret, method='Nelder-Mead')
+    print(result)
+    print(model.param)
 
-    rho_series.plot()
-    plt.plot(rho_series_fit)
+    model.rho_series.plot(label='Fitted')
+    rho_series.plot(label='Simulated')
+    plt.legend()
     plt.show()
-
-    print(model.likelihood(data=ret, rho_series=rho_series_fit))

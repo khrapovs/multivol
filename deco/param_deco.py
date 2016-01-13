@@ -37,9 +37,10 @@ class ParamDECO(object):
         self.alpha = self.persistence - self.beta
         self.volmean = volmean * np.ones(ndim)
 
-        self.bcorr = bcorr
         self.acorr = acorr
-        self.rho = rho
+        self.bcorr = bcorr
+        self.corr_target = (1 - rho) * np.eye(ndim) \
+            + rho * np.ones((ndim, ndim))
 
     def as_pandas(self):
         """Represent parameters as pandas objects.
@@ -48,10 +49,15 @@ class ParamDECO(object):
         univ = pd.DataFrame({'Persistence': self.persistence,
                              'Feedback': self.beta,
                              'Unconditional mean': self.volmean}).T
-        corr = pd.Series({'News impact': self.acorr,
-                          'Feedback': self.bcorr,
-                          'Correlation target': self.rho})
+        corr = pd.Series({'Feedback': self.bcorr,
+                          'Persistence': self.acorr + self.bcorr})
         return univ, corr
+
+    def update_deco(self, theta=None):
+        """Update DECO parameters.
+
+        """
+        self.acorr, self.bcorr = theta
 
     def __str__(self):
         """String representation.
@@ -63,6 +69,7 @@ class ParamDECO(object):
         show += univ.to_string(float_format=lambda x: '%.2f' % x)
         show += '\n\nParameters of correlation model:\n'
         show += corr.to_string(float_format=lambda x: '%.2f' % x)
+        show += '\nCorrelation target:\n' + np.array_str(self.corr_target)
         return show + '\n'
 
     def __repr__(self):
