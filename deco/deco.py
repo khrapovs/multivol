@@ -12,7 +12,7 @@ import pandas as pd
 import scipy.linalg as scl
 
 from arch import arch_model
-from deco import ParamDECO
+from .param_deco import ParamDECO
 
 __all__ = ['DECO']
 
@@ -107,34 +107,31 @@ class DECO(object):
         vol = self.estimate_univ(data=data)[0]
         return data / vol
 
-    def filter_qmat(self, data=None, param=None):
+    def filter_deco(self, data=None, param=None):
         """Filter Q matrix series.
 
         """
         data = data.values
         nobs, ndim = data.shape
         qmat = np.zeros((nobs, ndim, ndim))
+        corr_deco = np.zeros((nobs, ndim, ndim))
+        rho_series = np.ones(nobs)
+
         acorr = param.acorr
         bcorr = param.bcorr
         rho = param.rho
-        qmat[0] = (1 - rho) * np.eye(ndim) + rho * np.ones((ndim, ndim))
-        for t in range(1, nobs):
-            qmat[t] = qmat[0] * (1 - acorr - bcorr) \
-                + acorr * data[t-1, np.newaxis] * data[t-1] \
-                + bcorr * qmat[t-1]
 
-        return qmat
-
-    def filter_rho(self, data=None, param=None):
-        """Filter equicorrelation.
-
-        """
-        qmat = self.filter_qmat(data=data, param=param)
-        data = data.values
-        nobs, ndim = data.shape
-        rho_series = np.ones(nobs)
         for t in range(nobs):
+            if t == 0:
+                qmat[0] = (1 - rho) * np.eye(ndim) \
+                    + rho * np.ones((ndim, ndim))
+            else:
+                qmat[t] = qmat[0] * (1 - acorr - bcorr) \
+                    + acorr * data[t-1][:, np.newaxis] * data[t-1] \
+                    + bcorr * qmat[t-1]
             qdiag = np.diag(qmat[t]) ** .5
             corr_dcc = (1 / qdiag[:, np.newaxis] / qdiag) * qmat[t]
             rho_series[t] = (corr_dcc.sum() - ndim) / (ndim - 1) / ndim
-        return rho_series
+            corr_deco[t] = (1 - rho_series[t]) * np.eye(ndim) \
+                + rho_series[t] * np.ones((ndim, ndim))
+        return rho_series, corr_deco

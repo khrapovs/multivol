@@ -49,8 +49,8 @@ if __name__ == '__main__':
     std_data.plot(subplots=True, sharey='row')
     plt.show()
 
-#    qmat = model.filter_qmat(data=std_data, param=param)
-    rho_series = model.filter_rho(data=std_data, param=param)
+    rho_series_filt, corr = model.filter_deco(data=std_data, param=param)
 
-    plt.plot(rho_series)
+    rho_series.plot()
+    plt.plot(rho_series_filt)
     plt.show()

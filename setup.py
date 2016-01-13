@@ -15,7 +15,6 @@ setup(name='multivol',
       author_email='khrapovs@gmail.com',
       url='https://github.com/khrapovs/multivol',
       packages=find_packages(),
-      package_dir={'deco': './deco'},
       keywords=['volatility', 'multivariate', 'covariance', 'dynamics',
                 'estimation', 'simulation'],
       classifiers=[
