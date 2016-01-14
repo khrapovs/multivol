@@ -165,20 +165,20 @@ class DCC(object):
         else:
             self.filter_corr_dcc()
             self.filter_rho_series()
-            self.rho_series = pd.Series(self.rho_series, index=self.data.index)
             return self.likelihood_value()
 
     def fit(self, theta_start=[.1, .5], method='SLSQP'):
         """Fit DECO model to the data.
 
         """
-        self.param = ParamDCC()
+        self.param = ParamDCC(ndim=self.data.shape[1])
         self.standardize_returns()
         self.param.corr_target = np.corrcoef(self.std_data.T)
         options = {'disp': False, 'maxiter': int(1e6)}
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
         self.param.acorr, self.param.bcorr = opt_out.x
+        self.rho_series = pd.Series(self.rho_series, index=self.data.index)
         return opt_out
 
     def estimate_innov(self):

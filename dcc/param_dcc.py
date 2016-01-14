@@ -25,21 +25,15 @@ class ParamDCC(object):
 
     """
 
-    def __init__(self, ndim=3, persistence=.99, beta=.85, volmean=.2,
-                 acorr=.15, bcorr=.8, rho=.9):
+    def __init__(self, ndim=None, univ=None, acorr=.15, bcorr=.8):
         """Initialize parameter class.
 
         """
         self.ndim = ndim
-        self.persistence = persistence * np.ones(ndim)
-        self.beta = beta * np.ones(ndim)
-        self.alpha = self.persistence - self.beta
-        self.volmean = volmean * np.ones(ndim)
-
+        self.univ = univ
         self.acorr = acorr
         self.bcorr = bcorr
-        self.corr_target = (1 - rho) * np.eye(ndim) \
-            + rho * np.ones((ndim, ndim))
+        self.corr_target = None
 
     def as_pandas(self):
         """Represent parameters as pandas objects.
