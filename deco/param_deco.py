@@ -9,7 +9,6 @@ from __future__ import print_function, division
 
 import numpy as np
 import pandas as pd
-import scipy.linalg as scl
 
 __all__ = ['ParamDECO']
 
