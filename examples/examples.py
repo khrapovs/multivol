@@ -38,11 +38,9 @@ if __name__ == '__main__':
 
     print(model.data)
 
-    model.data.ret.plot(subplots=True, sharey='row')
-    plt.show()
-
-    model.data.std_ret.plot(subplots=True, sharey='row')
-    plt.show()
+    model.data.plot_returns()
+    model.data.plot_std_returns()
+    model.data.plot_innov()
 
     print(result)
     print(model.param)
@@ -52,7 +50,4 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
 
-    model.data.innov.plot(subplots=True, sharey='row')
-    plt.show()
-
-    print(np.corrcoef(model.data.innov.T))
+    print(model.data.innov_corr())
