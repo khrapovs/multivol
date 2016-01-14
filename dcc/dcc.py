@@ -128,8 +128,8 @@ class DCC(object):
 
         """
         ndim = self.data.ndim
-        self.data.rho_series = np.array([(corr.sum() - ndim) / (ndim - 1) / ndim
-            for corr in self.data.corr_dcc])
+        self.data.rho_series = np.array([(corr.sum() - ndim) \
+            / (ndim - 1) / ndim for corr in self.data.corr_dcc])
 
     def corr_deco(self):
         """Construct DECO correlation matrix series.
