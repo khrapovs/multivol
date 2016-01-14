@@ -38,8 +38,6 @@ if __name__ == '__main__':
 
     ret.plot(subplots=True, sharey='row')
     plt.show()
-    rho_series.plot()
-    plt.show()
 
     model = DCC(data=ret)
 

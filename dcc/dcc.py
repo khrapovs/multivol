@@ -83,12 +83,13 @@ class DCC(object):
 
         return pd.DataFrame(ret[1:]), pd.Series(rho_series[1:])
 
-    def estimate_univ(self, data=None):
+    def estimate_univ(self):
         """Estimate univariate volatility models.
 
         """
         vol = []
         theta = []
+        data = self.data.copy()
         for ret in data.values.T:
             model = arch_model(ret, p=1, q=1, mean='Zero',
                                vol='GARCH', dist='Normal')
@@ -97,14 +98,15 @@ class DCC(object):
             vol.append(res.conditional_volatility)
         theta = pd.concat(theta, axis=1)
         theta.columns = data.columns
-        vol = pd.DataFrame(np.vstack(vol).T, columns=data.columns)
-        return vol, theta
+        self.univ_vol = pd.DataFrame(np.vstack(vol).T, index=data.index,
+                                     columns=data.columns)
+        self.theta_univ = theta
 
     def standardize_returns(self):
         """Standardize returns using estimated conditional volatility.
 
         """
-        self.univ_vol = self.estimate_univ(data=self.data)[0]
+        self.estimate_univ()
         self.std_data = self.data / self.univ_vol
 
     def filter_corr_dcc(self):
