@@ -25,22 +25,21 @@ class ParamDCC(object):
 
     """
 
-    def __init__(self, ndim=None, univ=None, acorr=.15, bcorr=.8):
+    def __init__(self, ndim=None, univ=None, abcorr=None):
         """Initialize parameter class.
 
         """
         self.ndim = ndim
         self.univ = univ
-        self.acorr = acorr
-        self.bcorr = bcorr
+        self.abcorr = abcorr
         self.corr_target = None
 
     def as_pandas(self):
         """Represent parameters as pandas objects.
 
         """
-        corr = pd.Series({'Feedback': self.bcorr,
-                          'Persistence': self.acorr + self.bcorr})
+        corr = pd.Series({'Feedback': self.abcorr[1],
+                          'Persistence': self.abcorr.sum()})
         return corr
 
     def update_dcc(self, theta=None):

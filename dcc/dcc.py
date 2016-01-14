@@ -20,7 +20,7 @@ __all__ = ['DCC']
 
 class DCC(object):
 
-    """DECO model.
+    """DCC model.
 
     Attributes
     ----------
@@ -175,7 +175,7 @@ class DCC(object):
         options = {'disp': False, 'maxiter': int(1e6)}
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
-        self.param.acorr, self.param.bcorr = opt_out.x
+        self.param.abcorr = opt_out.x
         self.rho_series = pd.Series(self.rho_series, index=self.data.index)
         return opt_out
 
