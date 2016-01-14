@@ -14,6 +14,7 @@ import scipy.optimize as sco
 
 from arch import arch_model
 from .param_dcc import ParamDCC
+from .data_dcc import DataDCC
 
 __all__ = ['DCC']
 
@@ -30,12 +31,12 @@ class DCC(object):
 
     """
 
-    def __init__(self, data=None):
+    def __init__(self, ret=None):
         """Initialize the model.
 
         """
         self.param = None
-        self.data = data
+        self.data = DataDCC(ret=ret)
 
     def simulate(self, nobs=2000, ndim=3, persistence=.99, beta=.85,
                  volmean=.2, acorr=.15, bcorr=.8, rho=.9):
@@ -82,7 +83,7 @@ class DCC(object):
         """
         vol = []
         theta = []
-        data = self.data.copy()
+        data = self.data.ret.copy()
         for ret in data.values.T:
             model = arch_model(ret, p=1, q=1, mean='Zero',
                                vol='GARCH', dist='Normal')
@@ -91,8 +92,8 @@ class DCC(object):
             vol.append(res.conditional_volatility)
         theta = pd.concat(theta, axis=1)
         theta.columns = data.columns
-        self.univ_vol = pd.DataFrame(np.vstack(vol).T, index=data.index,
-                                     columns=data.columns)
+        self.data.univ_vol = pd.DataFrame(np.vstack(vol).T, index=data.index,
+                                          columns=data.columns)
         self.param.univ = theta
 
     def standardize_returns(self):
@@ -100,17 +101,17 @@ class DCC(object):
 
         """
         self.estimate_univ()
-        self.std_data = self.data / self.univ_vol
+        self.data.std_ret = self.data.ret / self.data.univ_vol
 
     def filter_corr_dcc(self):
         """Filter DCC correlation matrix series.
 
         """
-        data = self.std_data.values
+        data = self.data.std_ret.values
         nobs, ndim = data.shape
         acorr = self.param.acorr
         bcorr = self.param.bcorr
-        self.corr_dcc = np.zeros((nobs, ndim, ndim))
+        self.data.corr_dcc = np.zeros((nobs, ndim, ndim))
         qmat = self.param.corr_target.copy()
 
         for t in range(nobs):
@@ -119,38 +120,39 @@ class DCC(object):
                     + acorr * data[t-1][:, np.newaxis] * data[t-1] \
                     + bcorr * qmat
             qdiag = np.diag(qmat) ** .5
-            self.corr_dcc[t] = (1 / qdiag[:, np.newaxis] / qdiag) * qmat
+            self.data.corr_dcc[t] = (1 / qdiag[:, np.newaxis] / qdiag) * qmat
 
     def filter_rho_series(self):
         """Filter rho series.
 
         """
-        nobs, ndim = self.data.shape
-        self.rho_series = np.array([(corr.sum() - ndim) / (ndim - 1) / ndim
-            for corr in self.corr_dcc])
+        ndim = self.data.ndim
+        self.data.rho_series = np.array([(corr.sum() - ndim) / (ndim - 1) / ndim
+            for corr in self.data.corr_dcc])
 
     def corr_deco(self):
         """Construct DECO correlation matrix series.
 
         """
-        nobs, ndim = self.data.shape
+        nobs, ndim = self.data.nobs, self.data.ndim
         corr = np.zeros((nobs, ndim, ndim))
         for t in range(nobs):
-            corr[t] = (1 - self.rho_series[t]) * np.eye(ndim) \
-                    + self.rho_series[t] * np.ones((ndim, ndim))
+            corr[t] = (1 - self.data.rho_series[t]) * np.eye(ndim) \
+                    + self.data.rho_series[t] * np.ones((ndim, ndim))
         return corr
 
     def likelihood_value(self):
         """Log-likelihood function (data).
 
         """
-        data = self.std_data
+        data = self.data.std_ret
+        rho_series = self.data.rho_series
         nobs, ndim = data.shape
-        corr_det = (1 - self.rho_series) ** (ndim - 1) \
-            * (1 + (ndim - 1) * self.rho_series)
+        corr_det = (1 - rho_series) ** (ndim - 1) \
+            * (1 + (ndim - 1) * rho_series)
         out = np.log(corr_det) \
-            + ((data**2).sum(1) - self.rho_series * data.sum(1)**2 \
-            / (1 + (ndim - 1) * self.rho_series)) / (1 - self.rho_series)
+            + ((data**2).sum(1) - rho_series * data.sum(1)**2 \
+            / (1 + (ndim - 1) * rho_series)) / (1 - rho_series)
         return np.mean(out)
 
     def likelihood(self, theta):
@@ -169,25 +171,27 @@ class DCC(object):
         """Fit DECO model to the data.
 
         """
-        self.param = ParamDCC(ndim=self.data.shape[1])
+        self.param = ParamDCC(ndim=self.data.ndim)
         self.standardize_returns()
-        self.param.corr_target = np.corrcoef(self.std_data.T)
+        self.param.corr_target = np.corrcoef(self.data.std_ret.T)
         options = {'disp': False, 'maxiter': int(1e6)}
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
         self.param.abcorr = opt_out.x
-        self.rho_series = pd.Series(self.rho_series, index=self.data.index)
+        self.data.rho_series = pd.Series(self.data.rho_series,
+                                         index=self.data.ret.index)
+        self.estimate_innov()
         return opt_out
 
     def estimate_innov(self):
         """Estimate multivariate innovations.
 
         """
-        nobs, ndim = self.data.shape
+        nobs, ndim = self.data.ret.shape
         innov = np.zeros((nobs, ndim))
-        data = self.std_data.values
+        data = self.data.std_ret.values
         for t in range(nobs):
-            factor, lower = scl.cho_factor(self.corr_dcc[t], lower=True)
+            factor, lower = scl.cho_factor(self.data.corr_dcc[t], lower=True)
             innov[t] = scl.solve_triangular(factor, data[t], lower=lower)
-        self.innov = pd.DataFrame(innov, index=self.data.index,
-                                  columns=self.data.columns)
+        self.data.innov = pd.DataFrame(innov, index=self.data.ret.index,
+                                       columns=self.data.ret.columns)

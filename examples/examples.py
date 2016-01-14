@@ -33,27 +33,27 @@ if __name__ == '__main__':
                                      persistence=persistence, beta=beta,
                                      acorr=acorr, bcorr=bcorr, rho=rho)
 
-    ret.plot(subplots=True, sharey='row')
-    plt.show()
-
-    model = DCC(data=ret)
+    model = DCC(ret=ret)
 
     result = model.fit(method='Nelder-Mead')
 
-    model.std_data.plot(subplots=True, sharey='row')
+    print(model.data)
+
+    model.data.ret.plot(subplots=True, sharey='row')
     plt.show()
+
+    model.data.std_ret.plot(subplots=True, sharey='row')
+    plt.show()
+
     print(result)
     print(model.param)
 
-    model.rho_series.plot(label='Fitted')
+    model.data.rho_series.plot(label='Fitted')
     rho_series.plot(label='Simulated')
     plt.legend()
     plt.show()
 
-    model.estimate_innov()
-    model.innov.plot(subplots=True, sharey='row')
+    model.data.innov.plot(subplots=True, sharey='row')
     plt.show()
 
-    print(np.corrcoef(model.innov.T))
-
-    print(model.param)
+    print(np.corrcoef(model.data.innov.T))
