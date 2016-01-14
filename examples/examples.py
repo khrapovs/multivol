@@ -28,8 +28,7 @@ if __name__ == '__main__':
     bcorr = .9
     rho = .5
 
-    model = DCC()
-    ret, rho_series = model.simulate(nobs=nobs, ndim=ndim, volmean=volmean,
+    ret, rho_series = DCC.simulate(nobs=nobs, ndim=ndim, volmean=volmean,
                                      persistence=persistence, beta=beta,
                                      acorr=acorr, bcorr=bcorr, rho=rho)
 

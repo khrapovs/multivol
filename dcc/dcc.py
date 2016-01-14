@@ -38,7 +38,8 @@ class DCC(object):
         self.param = None
         self.data = DataDCC(ret=ret)
 
-    def simulate(self, nobs=2000, ndim=3, persistence=.99, beta=.85,
+    @staticmethod
+    def simulate(nobs=2000, ndim=3, persistence=.99, beta=.85,
                  volmean=.2, acorr=.15, bcorr=.8, rho=.9):
         """Simulate returns and (co)variances.
 
