@@ -107,13 +107,14 @@ class DECO(object):
         self.univ_vol = self.estimate_univ(data=data)[0]
         return data / self.univ_vol
 
-    def filter_deco(self, data=None, param=None):
+    def filter_corr_dcc(self, data=None, param=None):
         """Filter Q matrix series.
 
         """
         data = data.values
         nobs, ndim = data.shape
         qmat = np.zeros((nobs, ndim, ndim))
+        self.corr_dcc = np.zeros((nobs, ndim, ndim))
         rho_series = np.ones(nobs)
 
         acorr = param.acorr
@@ -127,9 +128,15 @@ class DECO(object):
                     + acorr * data[t-1][:, np.newaxis] * data[t-1] \
                     + bcorr * qmat[t-1]
             qdiag = np.diag(qmat[t]) ** .5
-            corr_dcc = (1 / qdiag[:, np.newaxis] / qdiag) * qmat[t]
-            rho_series[t] = (corr_dcc.sum() - ndim) / (ndim - 1) / ndim
-        return rho_series
+            self.corr_dcc[t] = (1 / qdiag[:, np.newaxis] / qdiag) * qmat[t]
+
+    def filter_rho_series(self):
+        """Filter rho series.
+
+        """
+        nobs, ndim = self.data.shape
+        self.rho_series = [(corr.sum() - ndim) / (ndim - 1) / ndim
+            for corr in self.corr_dcc]
 
     def corr_deco(self):
         """Construct correlation matrix series.
@@ -142,17 +149,17 @@ class DECO(object):
                     + self.rho_series[t] * np.ones((ndim, ndim))
         return corr
 
-    def likelihood_value(self, rho_series=None):
+    def likelihood_value(self):
         """Log-likelihood function (data).
 
         """
         data = self.std_data
         nobs, ndim = data.shape
-        corr_det = (1 - rho_series) ** (ndim - 1) \
-            * (1 + (ndim - 1) * rho_series)
+        corr_det = (1 - self.rho_series) ** (ndim - 1) \
+            * (1 + (ndim - 1) * self.rho_series)
         out = np.log(corr_det) \
-            + ((data**2).sum(1) - rho_series * data.sum(1)**2 \
-            / (1 + (ndim - 1) * rho_series)) / (1 - rho_series)
+            + ((data**2).sum(1) - self.rho_series * data.sum(1)**2 \
+            / (1 + (ndim - 1) * self.rho_series)) / (1 - self.rho_series)
         return np.mean(out)
 
     def likelihood(self, theta):
@@ -163,10 +170,10 @@ class DECO(object):
         if (np.sum(theta) >= 1.) or (theta <= 0.).any():
             return 1e10
         else:
-            rho_series = self.filter_deco(data=self.std_data,
-                                          param=self.param)
-            self.rho_series = pd.Series(rho_series, index=self.data.index)
-            return self.likelihood_value(rho_series=rho_series)
+            self.filter_corr_dcc(data=self.std_data, param=self.param)
+            self.filter_rho_series()
+            self.rho_series = pd.Series(self.rho_series, index=self.data.index)
+            return self.likelihood_value()
 
     def fit(self, theta_start=[.1, .5], data=None, method='SLSQP'):
         """Fit DECO model to the data.
@@ -186,12 +193,10 @@ class DECO(object):
 
         """
         nobs, ndim = self.data.shape
-        corr = self.corr_deco()
         errors = np.zeros((nobs, ndim))
         data = self.std_data.values
-        corr = np.corrcoef(data.T)
         for t in range(nobs):
-            factor, lower = scl.cho_factor(corr, lower=True)
+            factor, lower = scl.cho_factor(self.corr_dcc[t], lower=True)
             errors[t] = scl.solve_triangular(factor, data[t], lower=lower)
         self.errors = pd.DataFrame(errors, index=self.data.index,
                                    columns=self.data.columns)
