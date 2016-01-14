@@ -70,9 +70,7 @@ class DCC(object):
             qdiag = np.diag(qmat) ** .5
             corr_dcc = (1 / qdiag[:, np.newaxis] / qdiag) * qmat
             rho_series[t] = (corr_dcc.sum() - ndim) / (ndim - 1) / ndim
-            corr = (1 - rho_series[t]) * np.eye(ndim) \
-                + rho_series[t] * np.ones((ndim, ndim))
-            hvar[t] = (dvec[:, np.newaxis] * dvec)**.5 * corr
+            hvar[t] = (dvec[:, np.newaxis] * dvec)**.5 * corr_dcc
             ret[t] = error[t].dot(scl.cholesky(hvar[t], 0))
             qeta = qdiag * ret[t] / dvec**.5
 
