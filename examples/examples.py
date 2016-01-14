@@ -56,8 +56,8 @@ if __name__ == '__main__':
     plt.legend()
     plt.show()
 
-    model.estimate_residuals()
-    model.errors.plot(subplots=True, sharey='row')
+    model.estimate_innov()
+    model.innov.plot(subplots=True, sharey='row')
     plt.show()
 
-    print(np.corrcoef(model.errors.T))
+    print(np.corrcoef(model.innov.T))

@@ -182,15 +182,15 @@ class DCC(object):
                                method=method, options=options)
         return opt_out
 
-    def estimate_residuals(self):
-        """Estimate multivariate residuals.
+    def estimate_innov(self):
+        """Estimate multivariate innovations.
 
         """
         nobs, ndim = self.data.shape
-        errors = np.zeros((nobs, ndim))
+        innov = np.zeros((nobs, ndim))
         data = self.std_data.values
         for t in range(nobs):
             factor, lower = scl.cho_factor(self.corr_dcc[t], lower=True)
-            errors[t] = scl.solve_triangular(factor, data[t], lower=lower)
-        self.errors = pd.DataFrame(errors, index=self.data.index,
-                                   columns=self.data.columns)
+            innov[t] = scl.solve_triangular(factor, data[t], lower=lower)
+        self.innov = pd.DataFrame(innov, index=self.data.index,
+                                  columns=self.data.columns)
