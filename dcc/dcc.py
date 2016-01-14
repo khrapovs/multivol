@@ -30,14 +30,15 @@ class DCC(object):
 
     """
 
-    def __init__(self, param=ParamDCC(), data=None):
+    def __init__(self, data=None):
         """Initialize the model.
 
         """
-        self.param = param
+        self.param = None
         self.data = data
 
-    def simulate(self, nobs=2000):
+    def simulate(self, nobs=2000, ndim=3, persistence=.99, beta=.85,
+                 volmean=.2, acorr=.15, bcorr=.8, rho=.9):
         """Simulate returns and (co)variances.
 
         Parameters
@@ -47,19 +48,13 @@ class DCC(object):
         -------
 
         """
-        ndim = self.param.ndim
-        persistence = self.param.persistence
-        beta = self.param.beta
-        alpha = self.param.alpha
-        volmean = self.param.volmean
-
-        bcorr = self.param.bcorr
-        acorr = self.param.acorr
-
+        alpha = persistence - beta
         hvar = np.zeros((nobs+1, ndim, ndim))
         rho_series = np.ones(nobs+1)
         dvec = np.ones(ndim) * volmean
-        qmat = self.param.corr_target
+        corr_target = (1 - rho) * np.eye(ndim) \
+            + rho * np.ones((ndim, ndim))
+        qmat = corr_target.copy()
         ret = np.zeros((nobs+1, ndim))
         mean, cov = np.zeros(ndim), np.eye(ndim)
         error = np.random.multivariate_normal(mean, cov, nobs+1)
@@ -69,7 +64,7 @@ class DCC(object):
         for t in range(1, nobs+1):
             dvec = volmean * (1 - persistence) \
                 + alpha * ret[t-1]**2 + beta * dvec
-            qmat = self.param.corr_target * (1 - acorr - bcorr) \
+            qmat = corr_target * (1 - acorr - bcorr) \
                 + acorr * qeta[:, np.newaxis] * qeta \
                 + bcorr * qmat
             qdiag = np.diag(qmat) ** .5
@@ -100,7 +95,7 @@ class DCC(object):
         theta.columns = data.columns
         self.univ_vol = pd.DataFrame(np.vstack(vol).T, index=data.index,
                                      columns=data.columns)
-        self.theta_univ = theta
+        self.param.univ = theta
 
     def standardize_returns(self):
         """Standardize returns using estimated conditional volatility.
@@ -177,11 +172,13 @@ class DCC(object):
         """Fit DECO model to the data.
 
         """
+        self.param = ParamDCC()
         self.standardize_returns()
         self.param.corr_target = np.corrcoef(self.std_data.T)
         options = {'disp': False, 'maxiter': int(1e6)}
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
+        self.param.acorr, self.param.bcorr = opt_out.x
         return opt_out
 
     def estimate_innov(self):

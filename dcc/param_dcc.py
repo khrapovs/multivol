@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-DECO model
-==========
+DCC model parameters
+====================
 
 """
 from __future__ import print_function, division
@@ -45,12 +45,9 @@ class ParamDCC(object):
         """Represent parameters as pandas objects.
 
         """
-        univ = pd.DataFrame({'Persistence': self.persistence,
-                             'Feedback': self.beta,
-                             'Unconditional mean': self.volmean}).T
         corr = pd.Series({'Feedback': self.bcorr,
                           'Persistence': self.acorr + self.bcorr})
-        return univ, corr
+        return corr
 
     def update_dcc(self, theta=None):
         """Update DCC parameters.
@@ -62,12 +59,12 @@ class ParamDCC(object):
         """String representation.
 
         """
-        univ, corr = self.as_pandas()
+        corr = self.as_pandas()
         width = 60
         show = '=' * width
         show += '\nNumber of dimensions = %d' % self.ndim
         show += '\n\nParameters of univariate volatilities:\n'
-        show += univ.to_string(float_format=lambda x: '%.2f' % x)
+        show += self.univ.to_string(float_format=lambda x: '%.2f' % x)
         show += '\n\nParameters of correlation model:\n'
         show += corr.to_string(float_format=lambda x: '%.2f' % x)
         show += '\nCorrelation target:\n' + np.array_str(self.corr_target)

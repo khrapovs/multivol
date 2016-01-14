@@ -9,7 +9,7 @@ import seaborn as sns
 import numpy as np
 import pandas as pd
 
-from dcc import DCC, ParamDCC
+from dcc import DCC
 
 
 if __name__ == '__main__':
@@ -28,24 +28,20 @@ if __name__ == '__main__':
     bcorr = .9
     rho = .5
 
-    param = ParamDCC(ndim=ndim, persistence=persistence, beta=beta,
-                     volmean=volmean, acorr=acorr, bcorr=bcorr, rho=rho)
-
-    print(param)
-
-    model = DCC(param)
-    ret, rho_series = model.simulate(nobs=nobs)
+    model = DCC()
+    ret, rho_series = model.simulate(nobs=nobs, ndim=ndim, volmean=volmean,
+                                     persistence=persistence, beta=beta,
+                                     acorr=acorr, bcorr=bcorr, rho=rho)
 
     ret.plot(subplots=True, sharey='row')
     plt.show()
 
     model = DCC(data=ret)
 
-    model.standardize_returns()
+    result = model.fit(method='Nelder-Mead')
+
     model.std_data.plot(subplots=True, sharey='row')
     plt.show()
-
-    result = model.fit(method='Nelder-Mead')
     print(result)
     print(model.param)
 
@@ -59,3 +55,5 @@ if __name__ == '__main__':
     plt.show()
 
     print(np.corrcoef(model.innov.T))
+
+    print(model.param)
