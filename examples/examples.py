@@ -41,15 +41,13 @@ if __name__ == '__main__':
     rho_series.plot()
     plt.show()
 
-#    vol, theta = model.estimate_univ(ret)
-#    vol.plot(subplots=True, sharey='row')
-#    plt.show()
+    model = DCC(data=ret)
 
-    std_data = model.standardize_returns(ret)
-    std_data.plot(subplots=True, sharey='row')
+    model.standardize_returns()
+    model.std_data.plot(subplots=True, sharey='row')
     plt.show()
 
-    result = model.fit(data=ret, method='Nelder-Mead')
+    result = model.fit(method='Nelder-Mead')
     print(result)
     print(model.param)
 

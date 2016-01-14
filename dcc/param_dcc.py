@@ -63,12 +63,15 @@ class ParamDCC(object):
 
         """
         univ, corr = self.as_pandas()
-        show = '\n\nNumber of dimensions = %d' % self.ndim
+        width = 60
+        show = '=' * width
+        show += '\nNumber of dimensions = %d' % self.ndim
         show += '\n\nParameters of univariate volatilities:\n'
         show += univ.to_string(float_format=lambda x: '%.2f' % x)
         show += '\n\nParameters of correlation model:\n'
         show += corr.to_string(float_format=lambda x: '%.2f' % x)
         show += '\nCorrelation target:\n' + np.array_str(self.corr_target)
+        show += '\n' + '=' * width
         return show + '\n'
 
     def __repr__(self):

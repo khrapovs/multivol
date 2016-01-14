@@ -30,11 +30,12 @@ class DCC(object):
 
     """
 
-    def __init__(self, param=ParamDCC()):
+    def __init__(self, param=ParamDCC(), data=None):
         """Initialize the model.
 
         """
         self.param = param
+        self.data = data
 
     def simulate(self, nobs=2000):
         """Simulate returns and (co)variances.
@@ -56,10 +57,9 @@ class DCC(object):
         acorr = self.param.acorr
 
         hvar = np.zeros((nobs+1, ndim, ndim))
-        qmat = np.zeros((nobs+1, ndim, ndim))
         rho_series = np.ones(nobs+1)
         dvec = np.ones(ndim) * volmean
-        qmat[0] = self.param.corr_target
+        qmat = self.param.corr_target
         ret = np.zeros((nobs+1, ndim))
         mean, cov = np.zeros(ndim), np.eye(ndim)
         error = np.random.multivariate_normal(mean, cov, nobs+1)
@@ -69,11 +69,11 @@ class DCC(object):
         for t in range(1, nobs+1):
             dvec = volmean * (1 - persistence) \
                 + alpha * ret[t-1]**2 + beta * dvec
-            qmat[t] = qmat[0] * (1 - acorr - bcorr) \
+            qmat = self.param.corr_target * (1 - acorr - bcorr) \
                 + acorr * qeta[:, np.newaxis] * qeta \
-                + bcorr * qmat[t-1]
-            qdiag = np.diag(qmat[t]) ** .5
-            corr_dcc = (1 / qdiag[:, np.newaxis] / qdiag) * qmat[t]
+                + bcorr * qmat
+            qdiag = np.diag(qmat) ** .5
+            corr_dcc = (1 / qdiag[:, np.newaxis] / qdiag) * qmat
             rho_series[t] = (corr_dcc.sum() - ndim) / (ndim - 1) / ndim
             corr = (1 - rho_series[t]) * np.eye(ndim) \
                 + rho_series[t] * np.ones((ndim, ndim))
@@ -100,21 +100,21 @@ class DCC(object):
         vol = pd.DataFrame(np.vstack(vol).T, columns=data.columns)
         return vol, theta
 
-    def standardize_returns(self, data=None):
+    def standardize_returns(self):
         """Standardize returns using estimated conditional volatility.
 
         """
-        self.univ_vol = self.estimate_univ(data=data)[0]
-        return data / self.univ_vol
+        self.univ_vol = self.estimate_univ(data=self.data)[0]
+        self.std_data = self.data / self.univ_vol
 
-    def filter_corr_dcc(self, data=None, param=None):
+    def filter_corr_dcc(self):
         """Filter DCC correlation matrix series.
 
         """
-        data = data.values
+        data = self.std_data.values
         nobs, ndim = data.shape
-        acorr = param.acorr
-        bcorr = param.bcorr
+        acorr = self.param.acorr
+        bcorr = self.param.bcorr
         self.corr_dcc = np.zeros((nobs, ndim, ndim))
         qmat = self.param.corr_target.copy()
 
@@ -166,19 +166,17 @@ class DCC(object):
         if (np.sum(theta) >= 1.) or (theta <= 0.).any():
             return 1e10
         else:
-            self.filter_corr_dcc(data=self.std_data, param=self.param)
+            self.filter_corr_dcc()
             self.filter_rho_series()
             self.rho_series = pd.Series(self.rho_series, index=self.data.index)
             return self.likelihood_value()
 
-    def fit(self, theta_start=[.1, .5], data=None, method='SLSQP'):
+    def fit(self, theta_start=[.1, .5], method='SLSQP'):
         """Fit DECO model to the data.
 
         """
-        self.data = data
-        self.std_data = self.standardize_returns(self.data)
+        self.standardize_returns()
         self.param.corr_target = np.corrcoef(self.std_data.T)
-        # Optimization options
         options = {'disp': False, 'maxiter': int(1e6)}
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
