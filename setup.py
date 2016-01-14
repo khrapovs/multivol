@@ -8,7 +8,7 @@ with open('README.rst') as file:
 
 setup(name='multivol',
       version='1.0',
-      description=('Multivariate Densities'),
+      description=('Multivariate (co)variance'),
       long_description=long_description,
       author='Stanislav Khrapov',
       license='MIT',
