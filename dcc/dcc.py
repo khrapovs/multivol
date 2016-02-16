@@ -15,6 +15,7 @@ import scipy.optimize as sco
 from arch import arch_model
 from .param_dcc import ParamDCC
 from .data_dcc import DataDCC
+from .arch_forecast import garch_forecast
 
 __all__ = ['DCC']
 
@@ -84,19 +85,22 @@ class DCC(object):
 
         """
         vol = []
+        forecast = []
         theta = []
         data = self.data.ret.copy()
-        for ret in data.values.T:
-            model = arch_model(ret, p=1, q=1, mean='Zero',
+        for col in data:
+            model = arch_model(data[col], p=1, q=1, mean='Zero',
                                vol='GARCH', dist='Normal')
             res = model.fit(disp='off')
             theta.append(res.params)
             vol.append(res.conditional_volatility)
+            forecast.append(garch_forecast(res).iloc[-1, 0])
         theta = pd.concat(theta, axis=1)
         theta.columns = data.columns
-        self.data.univ_vol = pd.DataFrame(np.vstack(vol).T, index=data.index,
-                                          columns=data.columns)
+        self.data.univ_vol = pd.concat(vol, axis=1)
+        self.data.univ_vol.columns = data.columns
         self.param.univ = theta
+        self.data.univ_forecast = np.array(forecast)
 
     def standardize_returns(self):
         """Standardize returns using estimated conditional volatility.
@@ -188,8 +192,10 @@ class DCC(object):
         neg_ret[neg_ret > 0] = 0
         self.param.corr_neg_target = np.corrcoef(neg_ret)
         options = {'disp': False, 'maxiter': int(1e6)}
+
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
+
         self.param.abcorr = opt_out.x
         self.data.rho_series = pd.Series(self.data.rho_series,
                                          index=self.data.ret.index)
