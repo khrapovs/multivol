@@ -38,15 +38,16 @@ class ParamDCC(object):
         """Represent parameters as pandas objects.
 
         """
-        corr = pd.Series({'Feedback': self.abcorr[1],
-                          'Persistence': self.abcorr.sum()})
+        corr = pd.Series({'alpha': self.abcorr[0],
+                          'beta': self.abcorr[1],
+                          'delta': self.abcorr[2]})
         return corr
 
     def update_dcc(self, theta=None):
         """Update DCC parameters.
 
         """
-        self.acorr, self.bcorr = theta
+        self.acorr, self.bcorr, self.dcorr = theta
 
     def __str__(self):
         """String representation.
@@ -60,7 +61,7 @@ class ParamDCC(object):
         show += self.univ.to_string(float_format=lambda x: '%.2f' % x)
         show += '\n\nParameters of correlation model:\n'
         show += corr.to_string(float_format=lambda x: '%.2f' % x)
-        show += '\nCorrelation target:\n' + np.array_str(self.corr_target)
+        show += '\n\nCorrelation target:\n' + np.array_str(self.corr_target)
         show += '\n' + '=' * width
         return show + '\n'
 

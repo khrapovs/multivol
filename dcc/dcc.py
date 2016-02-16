@@ -40,7 +40,7 @@ class DCC(object):
 
     @staticmethod
     def simulate(nobs=2000, ndim=3, persistence=.99, beta=.85,
-                 volmean=.2, acorr=.15, bcorr=.8, rho=.9):
+                 volmean=.2, acorr=.15, bcorr=.8, rho=.9, error=None):
         """Simulate returns and (co)variances.
 
         Parameters
@@ -59,7 +59,8 @@ class DCC(object):
         qmat = corr_target.copy()
         ret = np.zeros((nobs+1, ndim))
         mean, cov = np.zeros(ndim), np.eye(ndim)
-        error = np.random.multivariate_normal(mean, cov, nobs+1)
+        if error is None:
+            error = np.random.multivariate_normal(mean, cov, nobs+1)
         error = (error - error.mean(0)) / error.std(0)
         qeta = np.zeros(ndim)
 
@@ -109,17 +110,22 @@ class DCC(object):
 
         """
         data = self.data.std_ret.values
+        neg_data = data.copy()
+        neg_data[neg_data > 0] = 0
         nobs, ndim = data.shape
         acorr = self.param.acorr
         bcorr = self.param.bcorr
+        dcorr = self.param.dcorr
         self.data.corr_dcc = np.zeros((nobs, ndim, ndim))
         qmat = self.param.corr_target.copy()
 
         for t in range(nobs):
             if t > 0:
                 qmat = self.param.corr_target * (1 - acorr - bcorr) \
+                    - dcorr * self.param.corr_neg_target \
                     + acorr * data[t-1][:, np.newaxis] * data[t-1] \
-                    + bcorr * qmat
+                    + bcorr * qmat \
+                    + dcorr * neg_data[t-1][:, np.newaxis] * neg_data[t-1]
             qdiag = np.diag(qmat) ** .5
             self.data.corr_dcc[t] = (1 / qdiag[:, np.newaxis] / qdiag) * qmat
 
@@ -161,20 +167,26 @@ class DCC(object):
 
         """
         self.param.update_dcc(theta)
-        if (np.sum(theta) >= 1.) or (theta <= 0.).any():
-            return 1e10
-        else:
-            self.filter_corr_dcc()
-            self.filter_rho_series()
-            return self.likelihood_value()
+        self.filter_corr_dcc()
+        self.filter_rho_series()
+        return self.likelihood_value()
+#        if (np.sum(theta) >= 1.) or (theta <= 0.).any():
+#            return 1e10
+#        else:
+#            self.filter_corr_dcc()
+#            self.filter_rho_series()
+#            return self.likelihood_value()
 
-    def fit(self, theta_start=[.1, .5], method='SLSQP'):
+    def fit(self, theta_start=[.1, .5, 0.], method='SLSQP'):
         """Fit DECO model to the data.
 
         """
         self.param = ParamDCC(ndim=self.data.ndim)
         self.standardize_returns()
         self.param.corr_target = np.corrcoef(self.data.std_ret.T)
+        neg_ret = self.data.std_ret.T.copy()
+        neg_ret[neg_ret > 0] = 0
+        self.param.corr_neg_target = np.corrcoef(neg_ret)
         options = {'disp': False, 'maxiter': int(1e6)}
         opt_out = sco.minimize(self.likelihood, theta_start,
                                method=method, options=options)
