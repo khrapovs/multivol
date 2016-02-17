@@ -121,17 +121,64 @@ class DCC(object):
         bcorr = self.param.bcorr
         dcorr = self.param.dcorr
         self.data.corr_dcc = np.zeros((nobs, ndim, ndim))
-        qmat = self.param.corr_target.copy()
+        self.data.qmat = np.zeros((nobs, ndim, ndim))
+        self.data.qmat[0] = self.param.corr_target.copy()
 
         for t in range(nobs):
             if t > 0:
-                qmat = self.param.corr_target * (1 - acorr - bcorr) \
+                self.data.qmat[t] = self.param.corr_target \
+                    * (1 - acorr - bcorr) \
                     - dcorr * self.param.corr_neg_target \
                     + acorr * data[t-1][:, np.newaxis] * data[t-1] \
-                    + bcorr * qmat \
+                    + bcorr * self.data.qmat[t-1] \
                     + dcorr * neg_data[t-1][:, np.newaxis] * neg_data[t-1]
-            qdiag = np.diag(qmat) ** .5
-            self.data.corr_dcc[t] = (1 / qdiag[:, np.newaxis] / qdiag) * qmat
+            qdiag = np.diag(self.data.qmat[t]) ** .5
+            self.data.corr_dcc[t] = (1 / qdiag[:, np.newaxis] / qdiag) \
+                * self.data.qmat[t]
+
+    def forecast_qmat(self):
+        """Forecast Q matrix.
+
+        Returns
+        -------
+        (ndim, ndim) array
+
+        """
+        acorr = self.param.acorr
+        bcorr = self.param.bcorr
+        dcorr = self.param.dcorr
+        data = self.data.std_ret.values[-1]
+        neg_data = data.copy()
+        neg_data[neg_data > 0] = 0
+        return self.param.corr_target * (1 - acorr - bcorr) \
+            - dcorr * self.param.corr_neg_target \
+            + acorr * data[:, np.newaxis] * data \
+            + bcorr * self.data.qmat[-1] \
+            + dcorr * neg_data[:, np.newaxis] * neg_data
+
+    def forecast_corr_dcc(self):
+        """Forecast R matrix.
+
+        Returns
+        -------
+        (ndim, ndim) array
+
+        """
+        qmat = self.forecast_qmat()
+        qdiag = np.diag(qmat) ** .5
+        return (1 / qdiag[:, np.newaxis] / qdiag) * qmat
+
+    def forecast_hmat(self):
+        """Forecast H matrix.
+
+        Returns
+        -------
+        (ndim, ndim) array
+
+        """
+        corr = self.forecast_corr_dcc()
+        dmat = np.diag(self.data.univ_forecast)
+        return dmat.dot(corr).dot(dmat)
 
     def filter_rho_series(self):
         """Filter rho series.

@@ -51,3 +51,5 @@ if __name__ == '__main__':
     plt.show()
 
     print(model.data.innov_corr())
+
+    print('Volatility forecast:\n', model.forecast_hmat())

@@ -37,7 +37,9 @@ class DataDCC(object):
         self.std_ret = None
         self.innov = None
         self.rho_series = None
+        self.qmat = None
         self.corr_dcc = None
+        self.univ_forecast = None
         if ret is not None:
             self.nobs, self.ndim = ret.shape
 
