@@ -124,17 +124,33 @@ class DCC(object):
         self.data.qmat = np.zeros((nobs, ndim, ndim))
         self.data.qmat[0] = self.param.corr_target.copy()
 
+        const = self.param.corr_target * (1 - acorr - bcorr) \
+            - dcorr * self.param.corr_neg_target
+        # Stationarity condition
+        if not (scl.eigvals(const).real > 0).all():
+            raise ValueError('Constant not positive definite!')
+
         for t in range(nobs):
+
             if t > 0:
-                self.data.qmat[t] = self.param.corr_target \
-                    * (1 - acorr - bcorr) \
-                    - dcorr * self.param.corr_neg_target \
+                self.data.qmat[t] = const \
                     + acorr * data[t-1][:, np.newaxis] * data[t-1] \
                     + bcorr * self.data.qmat[t-1] \
                     + dcorr * neg_data[t-1][:, np.newaxis] * neg_data[t-1]
-            qdiag = np.diag(self.data.qmat[t]) ** .5
-            self.data.corr_dcc[t] = (1 / qdiag[:, np.newaxis] / qdiag) \
-                * self.data.qmat[t]
+
+            qdiag = np.diag(self.data.qmat[t])
+            if not (np.isfinite(qdiag).all() & (qdiag > 0).all()):
+                raise ValueError('Invalid diagonal of Q matrix!')
+            qdiag = qdiag**.5
+
+            self.data.corr_dcc[t] = self.data.qmat[t] \
+                 / (qdiag[:, np.newaxis] * qdiag)
+            self.data.corr_dcc[t][np.diag_indices(ndim)] = np.ones(ndim)
+            cond1 = (self.data.corr_dcc[t] >= -1).all()
+            cond2 = (self.data.corr_dcc[t] <= 1).all()
+            cond3 = np.isfinite(self.data.corr_dcc[t]).all()
+            if not (cond1 & cond2 & cond3):
+                raise ValueError('Invalid correlation matrix!')
 
     def forecast_qmat(self):
         """Forecast Q matrix.
@@ -166,7 +182,7 @@ class DCC(object):
         """
         qmat = self.forecast_qmat()
         qdiag = np.diag(qmat) ** .5
-        return (1 / qdiag[:, np.newaxis] / qdiag) * qmat
+        return qmat / (qdiag[:, np.newaxis] * qdiag)
 
     def forecast_hmat(self):
         """Forecast H matrix.
@@ -185,8 +201,8 @@ class DCC(object):
 
         """
         ndim = self.data.ndim
-        self.data.rho_series = np.array([(corr.sum() - ndim) \
-            / (ndim - 1) / ndim for corr in self.data.corr_dcc])
+        self.data.rho_series = self.data.corr_dcc.sum((1, 2))
+        self.data.rho_series = (self.data.rho_series / ndim - 1) / (ndim - 1)
 
     def corr_deco(self):
         """Construct DECO correlation matrix series.
@@ -217,16 +233,22 @@ class DCC(object):
         """Log-likelihood function (parameters).
 
         """
+        # Stationarity conditions
+        if (theta[:2] <= 0).any():
+            return 1e10
+        if (theta[:2].sum() + theta[2] * self.lmbd) >= 1:
+            return 1e10
+
         self.param.update_dcc(theta)
-        self.filter_corr_dcc()
+
+        try:
+            self.filter_corr_dcc()
+        except ValueError:
+            return 1e10
+
         self.filter_rho_series()
+
         return self.likelihood_value()
-#        if (np.sum(theta) >= 1.) or (theta <= 0.).any():
-#            return 1e10
-#        else:
-#            self.filter_corr_dcc()
-#            self.filter_rho_series()
-#            return self.likelihood_value()
 
     def fit(self, theta_start=[.1, .5, 0.], method='SLSQP'):
         """Fit DECO model to the data.
@@ -238,6 +260,15 @@ class DCC(object):
         neg_ret = self.data.std_ret.T.copy()
         neg_ret[neg_ret > 0] = 0
         self.param.corr_neg_target = np.corrcoef(neg_ret)
+
+        # Compute lmbd to check for stationarity of Q
+        factor, lower = scl.cho_factor(self.param.corr_target, lower=True)
+        sandwich = scl.solve_triangular(factor, self.param.corr_neg_target,
+                                        lower=lower)
+        sandwich = scl.solve_triangular(factor, sandwich.T,
+                                        lower=lower)
+        self.lmbd = scl.eigvals(sandwich).real.max()
+
         options = {'disp': False, 'maxiter': int(1e6)}
 
         opt_out = sco.minimize(self.likelihood, theta_start,
@@ -257,7 +288,14 @@ class DCC(object):
         innov = np.zeros((nobs, ndim))
         data = self.data.std_ret.values
         for t in range(nobs):
-            factor, lower = scl.cho_factor(self.data.corr_dcc[t], lower=True)
+            try:
+                factor, lower = scl.cho_factor(self.data.corr_dcc[t],
+                                               lower=True)
+            except:
+                print('Cholesky failed!', t)
+                print(self.data.corr_dcc[t])
+                factor, lower = np.eye(ndim), True
             innov[t] = scl.solve_triangular(factor, data[t], lower=lower)
+
         self.data.innov = pd.DataFrame(innov, index=self.data.ret.index,
                                        columns=self.data.ret.columns)
