@@ -43,7 +43,7 @@ def dcc_recursion_python(qmat, const, data, neg_data, param):
 
 
 @jit(void(float64[:, :, :], float64[:, :], float64[:, :],
-          float64[:, :], float64[:]))
+          float64[:, :], float64[:]), nopython=True, nogil=True, cache=True)
 def dcc_recursion_numba(qmat, const, data, neg_data, param):
     """DCC recursion.
 

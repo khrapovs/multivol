@@ -23,6 +23,8 @@
 *.p
 *.npy
 *.token
+*.pyc
 .ipynb_checkpoints
 build
+__pycache__
 *.egg-info
