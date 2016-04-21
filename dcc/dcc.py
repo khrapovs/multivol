@@ -256,10 +256,10 @@ class DCC(object):
         """
         self.param = ParamDCC(ndim=self.data.ndim)
         self.standardize_returns()
-        self.param.corr_target = np.corrcoef(self.data.std_ret.T)
+        self.param.corr_target = np.atleast_2d(np.corrcoef(self.data.std_ret.T))
         neg_ret = self.data.std_ret.T.copy()
         neg_ret[neg_ret > 0] = 0
-        self.param.corr_neg_target = np.corrcoef(neg_ret)
+        self.param.corr_neg_target = np.atleast_2d(np.corrcoef(neg_ret))
 
         # Compute lmbd to check for stationarity of Q
         factor, lower = scl.cho_factor(self.param.corr_target, lower=True)
