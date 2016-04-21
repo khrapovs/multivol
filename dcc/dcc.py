@@ -16,6 +16,7 @@ from arch import arch_model
 from .param_dcc import ParamDCC
 from .data_dcc import DataDCC
 from .arch_forecast import garch_forecast
+from .dcc_recursion_python import dcc_recursion_python
 
 __all__ = ['DCC']
 
@@ -130,13 +131,11 @@ class DCC(object):
         if not (scl.eigvals(const).real > 0).all():
             raise ValueError('Constant not positive definite!')
 
-        for t in range(nobs):
+        param = param = [acorr, bcorr, dcorr]
+        # modiefies the first argument in place
+        dcc_recursion_python(self.data.qmat, const, data, neg_data, param)
 
-            if t > 0:
-                self.data.qmat[t] = const \
-                    + acorr * data[t-1][:, np.newaxis] * data[t-1] \
-                    + bcorr * self.data.qmat[t-1] \
-                    + dcorr * neg_data[t-1][:, np.newaxis] * neg_data[t-1]
+        for t in range(nobs):
 
             qdiag = np.diag(self.data.qmat[t])
             if not (np.isfinite(qdiag).all() & (qdiag > 0).all()):
@@ -146,11 +145,12 @@ class DCC(object):
             self.data.corr_dcc[t] = self.data.qmat[t] \
                  / (qdiag[:, np.newaxis] * qdiag)
             self.data.corr_dcc[t][np.diag_indices(ndim)] = np.ones(ndim)
-            cond1 = (self.data.corr_dcc[t] >= -1).all()
-            cond2 = (self.data.corr_dcc[t] <= 1).all()
-            cond3 = np.isfinite(self.data.corr_dcc[t]).all()
-            if not (cond1 & cond2 & cond3):
-                raise ValueError('Invalid correlation matrix!')
+
+        cond1 = (self.data.corr_dcc >= -1).all()
+        cond2 = (self.data.corr_dcc <= 1).all()
+        cond3 = np.isfinite(self.data.corr_dcc).all()
+        if not (cond1 & cond2 & cond3):
+            raise ValueError('Invalid correlation matrix!')
 
     def forecast_qmat(self):
         """Forecast Q matrix.
