@@ -16,7 +16,8 @@ from arch import arch_model
 from .param_dcc import ParamDCC
 from .data_dcc import DataDCC
 from .arch_forecast import garch_forecast
-from .dcc_recursion import dcc_recursion_python, dcc_recursion_numba
+from .dcc_recursion import (dcc_recursion_python, dcc_recursion_numba,
+                            corr_dcc_python, corr_dcc_numba)
 
 __all__ = ['DCC']
 
@@ -135,19 +136,10 @@ class DCC(object):
         # modiefies the first argument in place
         if self.numba:
             dcc_recursion_numba(self.data.qmat, const, data, neg_data, param)
+            corr_dcc_numba(self.data.corr_dcc, self.data.qmat)
         else:
             dcc_recursion_python(self.data.qmat, const, data, neg_data, param)
-
-        for t in range(nobs):
-
-            qdiag = np.diag(self.data.qmat[t])
-            if not (np.isfinite(qdiag).all() & (qdiag > 0).all()):
-                raise ValueError('Invalid diagonal of Q matrix!')
-            qdiag = qdiag**.5
-
-            self.data.corr_dcc[t] = self.data.qmat[t] \
-                 / (qdiag[:, np.newaxis] * qdiag)
-            self.data.corr_dcc[t][np.diag_indices(ndim)] = np.ones(ndim)
+            corr_dcc_python(self.data.corr_dcc, self.data.qmat)
 
         cond1 = (self.data.corr_dcc >= -1).all()
         cond2 = (self.data.corr_dcc <= 1).all()

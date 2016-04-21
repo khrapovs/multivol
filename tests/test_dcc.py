@@ -10,7 +10,8 @@ import numpy as np
 import numpy.testing as npt
 
 from dcc import DCC
-from dcc.dcc_recursion import dcc_recursion_python, dcc_recursion_numba
+from dcc.dcc_recursion import (dcc_recursion_python, dcc_recursion_numba,
+                               corr_dcc_python, corr_dcc_numba)
 
 
 class DCCTestCase(ut.TestCase):
@@ -43,11 +44,18 @@ class DCCTestCase(ut.TestCase):
         neg_data[neg_data > 0] = 0
         qmat1 = np.zeros((nobs, ndim, ndim))
         qmat2 = np.zeros((nobs, ndim, ndim))
+        corr_dcc1 = np.zeros((nobs, ndim, ndim))
+        corr_dcc2 = np.zeros((nobs, ndim, ndim))
 
         dcc_recursion_python(qmat1, const, data, neg_data, param)
         dcc_recursion_numba(qmat2, const, data, neg_data, param)
 
         npt.assert_array_equal(qmat1, qmat2)
+
+        corr_dcc_python(corr_dcc1, qmat1)
+        corr_dcc_python(corr_dcc2, qmat2)
+
+        npt.assert_array_equal(corr_dcc1, corr_dcc2)
 
 
 if __name__ == '__main__':
