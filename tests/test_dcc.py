@@ -23,7 +23,7 @@ class DCCTestCase(ut.TestCase):
 
 
         nobs = 10
-        ndim = 30
+        ndim = 3
         persistence = .99
         beta = .85
         volmean = .2
@@ -44,18 +44,20 @@ class DCCTestCase(ut.TestCase):
         neg_data[neg_data > 0] = 0
         qmat1 = np.zeros((nobs, ndim, ndim))
         qmat2 = np.zeros((nobs, ndim, ndim))
+        qmat1[0] = const.copy()
+        qmat2[0] = const.copy()
         corr_dcc1 = np.zeros((nobs, ndim, ndim))
         corr_dcc2 = np.zeros((nobs, ndim, ndim))
 
         dcc_recursion_python(qmat1, const, data, neg_data, param)
         dcc_recursion_numba(qmat2, const, data, neg_data, param)
 
-        npt.assert_array_equal(qmat1, qmat2)
+        npt.assert_array_almost_equal(qmat1, qmat2)
 
         corr_dcc_python(corr_dcc1, qmat1)
-        corr_dcc_python(corr_dcc2, qmat2)
+        corr_dcc_numba(corr_dcc2, qmat2)
 
-        npt.assert_array_equal(corr_dcc1, corr_dcc2)
+        npt.assert_array_almost_equal(corr_dcc1, corr_dcc2)
 
 
 if __name__ == '__main__':

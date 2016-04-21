@@ -91,9 +91,8 @@ def corr_dcc_python(corr_dcc, qmat):
     for t in range(nobs):
 
         qdiag = np.diag(qmat[t])**.5
-#        if not (np.isfinite(qdiag).all() & (qdiag > 0).all()):
-#            raise ValueError('Invalid diagonal of Q matrix!')
-#        qdiag = qdiag**.5
+        if not (np.isfinite(qdiag).all() & (qdiag > 0).all()):
+            raise ValueError('Invalid diagonal of Q matrix!')
 
         corr_dcc[t] = qmat[t] / (qdiag[:, np.newaxis] * qdiag)
         corr_dcc[t][np.diag_indices(ndim)] = np.ones(ndim)
@@ -118,6 +117,12 @@ def corr_dcc_numba(corr_dcc, qmat):
 
         for i in range(ndim):
             for j in range(ndim):
+
+                cond1 = np.isfinite(qmat[t, i, j])
+                cond2 = qmat[t, i, i] > 0
+                cond3 = qmat[t, j, j] > 0
+                if not (cond1 & cond2 & cond3):
+                    raise ValueError('Invalid diagonal of Q matrix!')
 
                 corr_dcc[t, i, j] = qmat[t, i, j] \
                     / (qmat[t, i, i] * qmat[t, j, j])**.5
