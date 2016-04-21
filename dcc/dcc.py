@@ -16,7 +16,7 @@ from arch import arch_model
 from .param_dcc import ParamDCC
 from .data_dcc import DataDCC
 from .arch_forecast import garch_forecast
-from .dcc_recursion_python import dcc_recursion_python
+from .dcc_recursion import dcc_recursion_python, dcc_recursion_numba
 
 __all__ = ['DCC']
 
@@ -131,9 +131,12 @@ class DCC(object):
         if not (scl.eigvals(const).real > 0).all():
             raise ValueError('Constant not positive definite!')
 
-        param = param = [acorr, bcorr, dcorr]
+        param = np.array([acorr, bcorr, dcorr])
         # modiefies the first argument in place
-        dcc_recursion_python(self.data.qmat, const, data, neg_data, param)
+        if self.numba:
+            dcc_recursion_numba(self.data.qmat, const, data, neg_data, param)
+        else:
+            dcc_recursion_python(self.data.qmat, const, data, neg_data, param)
 
         for t in range(nobs):
 
@@ -250,10 +253,11 @@ class DCC(object):
 
         return self.likelihood_value()
 
-    def fit(self, theta_start=[.1, .5, 0.], method='SLSQP'):
+    def fit(self, theta_start=[.1, .5, 0.], method='SLSQP', numba=True):
         """Fit DECO model to the data.
 
         """
+        self.numba = numba
         self.param = ParamDCC(ndim=self.data.ndim)
         self.standardize_returns()
         self.param.corr_target = np.atleast_2d(np.corrcoef(self.data.std_ret.T))

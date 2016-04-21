@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 
 from dcc import DCC
+from dcc.utils import take_time
 
 
 if __name__ == '__main__':
@@ -34,7 +35,10 @@ if __name__ == '__main__':
 
     model = DCC(ret=ret)
 
-    result = model.fit(method='Nelder-Mead')
+    with take_time('Python'):
+        result = model.fit(method='Nelder-Mead', numba=False)
+    with take_time('Numba'):
+        result = model.fit(method='Nelder-Mead', numba=True)
 
     print(model.data)
 
